@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Search, Database, Code, Loader2, CheckCircle, AlertCircle, Bot, User, Sparkles, FileText, Globe, Terminal, ChevronDown, ChevronUp, Clock, Activity, Shield, ShieldCheck, X, Check, AlertTriangle } from 'lucide-react';
+import { Send, Plus, Search, Database, Code, Loader2, CheckCircle, AlertCircle, Bot, User, Sparkles, FileText, Globe, Terminal, ChevronDown, ChevronUp, Clock, Activity, Shield, ShieldCheck, X, Check, AlertTriangle, Zap } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -179,12 +179,88 @@ print("12 visualizations generated successfully")`,
           }
         }
       ]
+    },
+    { 
+      id: 5, 
+      type: 'user', 
+      content: 'Can you update the lead scoring rules in Salesforce for our new product launch campaign?' 
+    },
+    { 
+      id: 6, 
+      type: 'assistant', 
+      content: "I need to hand this off to our Salesforce specialist who has the expertise and permissions to modify lead scoring rules. Let me connect you with the Salesforce Core agent.",
+      agentHandoff: {
+        fromAgent: "General AI Assistant",
+        toAgent: "Salesforce Core Agent",
+        reason: "Salesforce configuration requires specialized knowledge and elevated permissions",
+        timestamp: "10:28:45"
+      }
+    },
+    { 
+      id: 7, 
+      type: 'assistant', 
+      content: "Hello! I'm the Salesforce Core agent. I'll help you update the lead scoring rules for your new product launch campaign. Let me access your Salesforce org and review the current configuration.",
+      agentInfo: {
+        name: "Salesforce Core Agent",
+        specialization: "Salesforce Administration & Development",
+        permissions: ["Apex Code", "Workflow Rules", "Custom Objects", "Lead Management"]
+      },
+      actions: [
+        { 
+          id: 'action-sf-login',
+          type: 'salesforce-login', 
+          status: 'awaiting_user_action', 
+          toolName: 'Salesforce Login Tool',
+          description: 'Authenticate with Salesforce org', 
+          icon: Shield,
+          startTime: '10:28:47',
+          approved: true,
+          details: {
+            org: 'Production',
+            username: 'admin@yourcompany.com',
+            loginMethod: 'OAuth 2.0',
+            sessionStatus: 'expired',
+            lastLogin: '10:26:30',
+            permissions: ['Modify All Data', 'View Setup', 'Apex Execution'],
+            logs: [
+              { time: '10:28:47', message: 'Checking existing Salesforce session...' },
+              { time: '10:28:47', message: 'Previous session expired at 10:26:30' },
+              { time: '10:28:47', message: 'User action required to refresh authentication' }
+            ]
+          }
+        },
+        { 
+          id: 'action-sf-1',
+          type: 'salesforce', 
+          status: 'awaiting_user_action', 
+          toolName: 'APEX Code Interpreter Tool',
+          description: 'Analyzing current lead scoring configuration', 
+          icon: Zap,
+          approved: true,
+          details: {
+            language: 'Apex',
+            operation: 'Query Lead Scoring Rules',
+            org: 'Production',
+            estimatedTime: '2-5 seconds',
+            dependsOn: 'Salesforce Login Tool',
+            dependencyStatus: 'session_expired',
+            waitingFor: 'User to refresh Salesforce session',
+            logs: [
+              { time: '10:28:50', message: 'Checking dependencies...' },
+              { time: '10:28:50', message: 'Dependency: Salesforce Login Tool - session expired' },
+              { time: '10:28:50', message: 'Waiting for user to refresh Salesforce session' }
+            ]
+          }
+        }
+      ]
     }
   ]);
   
   const [expandedActions, setExpandedActions] = useState(new Set());
   const [trustMode, setTrustMode] = useState(false);
   const [trustedSession, setTrustedSession] = useState(false);
+  const [showSalesforceModal, setShowSalesforceModal] = useState(false);
+  const [salesforceSessionActive, setSalesforceSessionActive] = useState(false);
   
   const [inputValue, setInputValue] = useState('');
   const [activeThread, setActiveThread] = useState(1);
@@ -192,6 +268,128 @@ print("12 visualizations generated successfully")`,
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSalesforceRefresh = () => {
+    setSalesforceSessionActive(true);
+    setShowSalesforceModal(false);
+    
+    // Update the messages to reflect the session refresh and activate APEX tool
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === 7 && msg.actions) {
+        return {
+          ...msg,
+          actions: msg.actions.map(action => {
+            if (action.id === 'action-sf-login') {
+              return {
+                ...action,
+                status: 'completed',
+                endTime: new Date().toLocaleTimeString(),
+                details: {
+                  ...action.details,
+                  sessionStatus: 'active',
+                  sessionId: 'sf-session-xyz789',
+                  logs: [
+                    ...action.details.logs,
+                    { time: new Date().toLocaleTimeString(), message: 'User initiated session refresh' },
+                    { time: new Date().toLocaleTimeString(), message: 'OAuth authentication successful' },
+                    { time: new Date().toLocaleTimeString(), message: 'New session established' }
+                  ]
+                }
+              };
+            }
+            if (action.id === 'action-sf-1') {
+              return {
+                ...action,
+                status: 'running',
+                startTime: new Date().toLocaleTimeString(),
+                details: {
+                  ...action.details,
+                  waitingFor: undefined,
+                  dependsOn: undefined,
+                  dependencyStatus: undefined,
+                  logs: [
+                    { time: new Date().toLocaleTimeString(), message: 'Dependency satisfied: Salesforce Login Tool - session active' },
+                    { time: new Date().toLocaleTimeString(), message: 'Salesforce session active - proceeding with analysis' },
+                    { time: new Date().toLocaleTimeString(), message: 'Connecting to Salesforce Production org...' },
+                    { time: new Date().toLocaleTimeString(), message: 'Executing APEX code...' }
+                  ]
+                }
+              };
+            }
+            return action;
+          })
+        };
+      }
+      return msg;
+    }));
+
+    // Simulate APEX completion after a delay
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === 7 && msg.actions) {
+          return {
+            ...msg,
+            actions: msg.actions.map(action => {
+              if (action.id === 'action-sf-1') {
+                return {
+                  ...action,
+                  status: 'completed',
+                  endTime: new Date().toLocaleTimeString(),
+                  details: {
+                    ...action.details,
+                    executionTime: '2.8s',
+                    apexCode: `// Query current lead scoring rules
+List<Lead> leads = [SELECT Id, LeadScore, Rating, Source, Industry, Company 
+                    FROM Lead 
+                    WHERE CreatedDate = LAST_N_DAYS:30 
+                    LIMIT 1000];
+
+// Analyze scoring distribution
+Map<String, Integer> scoreDistribution = new Map<String, Integer>();
+for(Lead l : leads) {
+    String scoreRange = getScoreRange(l.LeadScore);
+    Integer count = scoreDistribution.get(scoreRange);
+    scoreDistribution.put(scoreRange, count == null ? 1 : count + 1);
+}
+
+System.debug('Current lead score distribution: ' + scoreDistribution);
+
+// Get active scoring rules
+List<LeadScoringRule__c> activeRules = [SELECT Id, Name, Criteria__c, Points__c, IsActive__c 
+                                       FROM LeadScoringRule__c 
+                                       WHERE IsActive__c = true];
+
+System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
+                    results: {
+                      leadsAnalyzed: 847,
+                      activeRules: 12,
+                      averageScore: 42.3,
+                      scoreDistribution: {
+                        "Hot (80-100)": 67,
+                        "Warm (60-79)": 156,
+                        "Cold (40-59)": 324,
+                        "Unqualified (0-39)": 300
+                      }
+                    },
+                    logs: [
+                      ...action.details.logs,
+                      { time: new Date().toLocaleTimeString(), message: 'print: Querying lead scoring rules...' },
+                      { time: new Date().toLocaleTimeString(), message: 'print: Found 847 leads from last 30 days' },
+                      { time: new Date().toLocaleTimeString(), message: 'print: Current lead score distribution calculated' },
+                      { time: new Date().toLocaleTimeString(), message: 'print: Found 12 active scoring rules' },
+                      { time: new Date().toLocaleTimeString(), message: 'Analysis complete - ready for rule modifications' }
+                    ]
+                  }
+                };
+              }
+              return action;
+            })
+          };
+        }
+        return msg;
+      }));
+    }, 3000);
   };
   
   useEffect(() => {
@@ -389,13 +587,16 @@ print("12 visualizations generated successfully")`,
     return <Icon className="w-4 h-4 text-gray-400" />;
   };
   
-  const getActionStatusColor = (status) => {
+  const getActionStatusColor = (status, actionId) => {
+    const isExpanded = expandedActions.has(actionId);
+    
     switch (status) {
       case 'completed': return 'bg-green-100 border-green-300';
       case 'running': return 'bg-blue-100 border-blue-300 animate-pulse';
       case 'error': return 'bg-red-100 border-red-300';
       case 'rejected': return 'bg-red-100 border-red-300';
       case 'pending_approval': return 'bg-yellow-100 border-yellow-300';
+      case 'awaiting_user_action': return `bg-orange-100 border-orange-300 ${isExpanded ? '' : 'animate-pulse'}`;
       default: return 'bg-gray-100 border-gray-300';
     }
   };
@@ -476,9 +677,16 @@ print("12 visualizations generated successfully")`,
             <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex gap-3 max-w-3xl ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' ? 'bg-gray-600' : 'bg-blue-600'
+                  message.type === 'user' ? 'bg-gray-600' : 
+                  message.agentInfo ? 'bg-purple-600' : 'bg-blue-600'
                 }`}>
-                  {message.type === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
+                  {message.type === 'user' ? (
+                    <User className="w-5 h-5 text-white" />
+                  ) : message.agentInfo ? (
+                    <Zap className="w-5 h-5 text-white" />
+                  ) : (
+                    <Bot className="w-5 h-5 text-white" />
+                  )}
                 </div>
                 
                 <div className="flex-1">
@@ -487,6 +695,45 @@ print("12 visualizations generated successfully")`,
                   }`}>
                     <p className={message.type === 'user' ? 'text-white' : 'text-gray-800'}>{message.content}</p>
                   </div>
+                  
+                  {/* Agent Handoff */}
+                  {message.agentHandoff && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ShieldCheck className="w-5 h-5 text-blue-600" />
+                        <div className="text-sm font-medium text-blue-900">Agent Handoff</div>
+                      </div>
+                      <div className="text-xs text-blue-700 space-y-1">
+                        <div><strong>From:</strong> {message.agentHandoff.fromAgent}</div>
+                        <div><strong>To:</strong> {message.agentHandoff.toAgent}</div>
+                        <div><strong>Reason:</strong> {message.agentHandoff.reason}</div>
+                        <div><strong>Time:</strong> {message.agentHandoff.timestamp}</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Agent Info */}
+                  {message.agentInfo && (
+                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-5 h-5 text-purple-600" />
+                        <div className="text-sm font-medium text-purple-900">{message.agentInfo.name}</div>
+                      </div>
+                      <div className="text-xs text-purple-700 space-y-1">
+                        <div><strong>Specialization:</strong> {message.agentInfo.specialization}</div>
+                        <div className="flex items-center gap-1">
+                          <strong>Permissions:</strong>
+                          <div className="flex gap-1 flex-wrap">
+                            {message.agentInfo.permissions.map((perm, i) => (
+                              <span key={i} className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">
+                                {perm}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Agent Actions */}
                   {message.actions && (
@@ -550,7 +797,7 @@ print("12 visualizations generated successfully")`,
                           
                           <div 
                             onClick={() => toggleActionExpanded(action.id)}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${getActionStatusColor(action.status)} transition-all cursor-pointer hover:shadow-sm`}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${getActionStatusColor(action.status, action.id)} transition-all cursor-pointer hover:shadow-sm`}
                           >
                             {getActionIcon(action)}
                             <div className="flex-1">
@@ -568,6 +815,12 @@ print("12 visualizations generated successfully")`,
                               )}
                               {action.approved === false && (
                                 <span className="text-xs text-red-600 font-medium">Rejected</span>
+                              )}
+                              {action.status === 'awaiting_user_action' && (
+                                <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                                  <AlertCircle className="w-3 h-3" />
+                                  <span className="text-xs font-medium">Action Required</span>
+                                </div>
                               )}
                               {action.startTime && (
                                 <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -756,6 +1009,148 @@ print("12 visualizations generated successfully")`,
                                   </div>
                                 )}
                                 
+                                {action.type === 'salesforce-login' && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-4 text-xs">
+                                      <span><strong>Org:</strong> {action.details.org}</span>
+                                      <span><strong>Username:</strong> {action.details.username}</span>
+                                      <span><strong>Method:</strong> {action.details.loginMethod}</span>
+                                      <span><strong>Last Login:</strong> {action.details.lastLogin}</span>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                      <div className="font-medium text-gray-600">Session Status:</div>
+                                      {action.details.sessionStatus === 'expired' ? (
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                                            <span className="text-sm font-medium text-orange-800">Session Expired</span>
+                                          </div>
+                                          <div className="text-xs text-orange-700 space-y-2">
+                                            <div>Your Salesforce session has expired. Please refresh to continue.</div>
+                                            <div className="flex items-center gap-1">
+                                              <strong>Required Permissions:</strong>
+                                              <div className="flex gap-1 flex-wrap">
+                                                {action.details.permissions.map((perm, i) => (
+                                                  <span key={i} className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">
+                                                    {perm}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <button
+                                            onClick={() => setShowSalesforceModal(true)}
+                                            className="mt-2 w-full px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                                          >
+                                            Refresh Salesforce Session
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                            <span className="text-sm font-medium text-green-800">Session Active</span>
+                                          </div>
+                                          <div className="text-xs text-green-700 space-y-1">
+                                            <div><strong>Session ID:</strong> {action.details.sessionId}</div>
+                                            <div className="flex items-center gap-1">
+                                              <strong>Permissions:</strong>
+                                              <div className="flex gap-1 flex-wrap">
+                                                {action.details.permissions.map((perm, i) => (
+                                                  <span key={i} className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                                                    {perm}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {action.type === 'salesforce' && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-4 text-xs">
+                                      <span><strong>Language:</strong> {action.details.language}</span>
+                                      <span><strong>Operation:</strong> {action.details.operation}</span>
+                                      <span><strong>Org:</strong> {action.details.org}</span>
+                                      <span><strong>Time:</strong> {action.details.executionTime || action.details.estimatedTime}</span>
+                                    </div>
+                                    
+                                    {action.status === 'awaiting_user_action' && action.details.waitingFor && (
+                                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <AlertCircle className="w-4 h-4 text-orange-600" />
+                                          <span className="text-sm font-medium text-orange-800">Awaiting User Action</span>
+                                        </div>
+                                        <div className="text-xs text-orange-700 space-y-1">
+                                          <div><strong>Waiting for:</strong> {action.details.waitingFor}</div>
+                                          {action.details.dependsOn && (
+                                            <div className="flex items-center gap-2">
+                                              <strong>Depends on:</strong>
+                                              <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">
+                                                {action.details.dependsOn}
+                                              </span>
+                                              <span className="text-xs text-orange-600">
+                                                ({action.details.dependencyStatus?.replace('_', ' ')})
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {action.details.apexCode && (
+                                      <div className="space-y-2">
+                                        <div className="font-medium text-gray-600">APEX Code:</div>
+                                        <div className="rounded overflow-hidden">
+                                          <SyntaxHighlighter 
+                                            language="java" 
+                                            style={tomorrow}
+                                            className="text-xs"
+                                            customStyle={{
+                                              margin: 0,
+                                              borderRadius: '0.375rem',
+                                              fontSize: '0.75rem'
+                                            }}
+                                          >
+                                            {action.details.apexCode}
+                                          </SyntaxHighlighter>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {action.details.results && (
+                                      <div className="space-y-2">
+                                        <div className="font-medium text-gray-600">Execution Results:</div>
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                          <div className="grid grid-cols-2 gap-4 text-xs mb-3">
+                                            <div><strong>Leads Analyzed:</strong> {action.details.results.leadsAnalyzed?.toLocaleString()}</div>
+                                            <div><strong>Active Rules:</strong> {action.details.results.activeRules}</div>
+                                            <div><strong>Average Score:</strong> {action.details.results.averageScore}</div>
+                                          </div>
+                                          {action.details.results.scoreDistribution && (
+                                            <div>
+                                              <div className="font-medium text-gray-600 mb-2 text-xs">Score Distribution:</div>
+                                              <div className="space-y-1">
+                                                {Object.entries(action.details.results.scoreDistribution).map(([range, count]) => (
+                                                  <div key={range} className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-600">{range}:</span>
+                                                    <span className="font-medium">{count} leads</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
                                 {/* Logs */}
                                 {action.details.logs && action.details.logs.length > 0 && (
                                   <div className="mt-3 pt-3 border-t border-gray-200">
@@ -813,6 +1208,91 @@ print("12 visualizations generated successfully")`,
           </div>
         </div>
       </div>
+      
+      {/* Salesforce Login Modal */}
+      {showSalesforceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Shield className="w-6 h-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Salesforce Login</h3>
+              </div>
+              <button
+                onClick={() => setShowSalesforceModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Salesforce Org URL
+                </label>
+                <input
+                  type="text"
+                  defaultValue="https://yourcompany.my.salesforce.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                <input
+                  type="email"
+                  defaultValue="admin@yourcompany.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Authentication Method
+                </label>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-gray-700">OAuth 2.0 (Connected)</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Session Details
+                </label>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="text-xs text-green-700 space-y-1">
+                    <div><strong>Session ID:</strong> sf-session-abc123</div>
+                    <div><strong>Org ID:</strong> 00D000000000000EAA</div>
+                    <div><strong>Login Time:</strong> 10:28:47</div>
+                    <div><strong>Expires:</strong> 10:28:47 + 2 hours</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSalesforceModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleSalesforceRefresh}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Refresh Session
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
