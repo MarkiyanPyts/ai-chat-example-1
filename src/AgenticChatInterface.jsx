@@ -83,7 +83,8 @@ print("12 visualizations generated successfully")`,
         { 
           id: 'action-3',
           type: 'document', 
-          status: 'pending_approval', 
+          status: 'pending_approval',
+          toolName: 'Document Writer Tool',
           description: 'Write Confluence page', 
           icon: FileText,
           startTime: '10:23:51',
@@ -108,6 +109,73 @@ print("12 visualizations generated successfully")`,
               'May overwrite existing page with same title'
             ],
             logs: []
+          }
+        }
+      ]
+    },
+    { 
+      id: 3, 
+      type: 'user', 
+      content: 'Find documentation about our API authentication process from our internal Confluence' 
+    },
+    { 
+      id: 4, 
+      type: 'assistant', 
+      content: "I'll search through your Confluence documentation to find information about API authentication processes.",
+      actions: [
+        { 
+          id: 'action-confluence-1',
+          type: 'confluence', 
+          status: 'completed', 
+          toolName: 'Confluence Search Tool',
+          description: 'Searching internal documentation', 
+          icon: FileText,
+          startTime: '10:25:12',
+          endTime: '10:25:15',
+          approved: true,
+          details: {
+            searchQuery: 'API authentication process',
+            space: 'Engineering Documentation',
+            resultsFound: 8,
+            executionTime: '3.2s',
+            confluenceResults: [
+              {
+                title: "API Authentication Guide v2.1",
+                url: "https://yourcompany.atlassian.net/wiki/spaces/ENG/pages/12345/API+Authentication+Guide",
+                space: "Engineering Documentation",
+                author: "John Smith",
+                lastModified: "2024-01-15",
+                snippet: "This guide covers OAuth 2.0 implementation, JWT token validation, and API key management for our REST APIs. Includes code examples and security best practices.",
+                labels: ["api", "auth", "security", "oauth"],
+                pageType: "documentation"
+              },
+              {
+                title: "Security Standards - Authentication",
+                url: "https://yourcompany.atlassian.net/wiki/spaces/SEC/pages/67890/Security+Standards",
+                space: "Security Team",
+                author: "Sarah Johnson",
+                lastModified: "2024-01-10",
+                snippet: "Company-wide authentication standards including password policies, multi-factor authentication requirements, and API security protocols. Updated with latest OWASP guidelines.",
+                labels: ["security", "standards", "compliance", "mfa"],
+                pageType: "policy"
+              },
+              {
+                title: "Developer Onboarding - API Access",
+                url: "https://yourcompany.atlassian.net/wiki/spaces/DEV/pages/11111/Developer+Onboarding",
+                space: "Developer Resources",
+                author: "Mike Chen",
+                lastModified: "2024-01-08",
+                snippet: "Step-by-step guide for new developers to obtain API credentials, set up authentication, and make their first API calls. Includes troubleshooting common issues.",
+                labels: ["onboarding", "api", "getting-started", "credentials"],
+                pageType: "tutorial"
+              }
+            ],
+            logs: [
+              { time: '10:25:12', message: 'Connecting to Confluence instance...' },
+              { time: '10:25:13', message: 'Searching across 3 spaces: Engineering Documentation, Security Team, Developer Resources' },
+              { time: '10:25:14', message: 'Found 8 matching pages' },
+              { time: '10:25:15', message: 'Ranked results by relevance and recency' }
+            ]
           }
         }
       ]
@@ -151,7 +219,8 @@ print("12 visualizations generated successfully")`,
             { 
               id: newActionId,
               type: 'search', 
-              status: trustedSession ? 'running' : 'pending_approval', 
+              status: trustedSession ? 'running' : 'pending_approval',
+              toolName: 'Web Search Tool',
               description: 'Searching for relevant data', 
               icon: Globe,
               startTime: new Date().toLocaleTimeString(),
@@ -161,22 +230,42 @@ print("12 visualizations generated successfully")`,
                 sources: ['Web', 'Internal Docs', 'Knowledge Base'],
                 estimatedTime: '2-5 seconds',
                 potentialRisks: ['External web access', 'API rate limits may apply'],
+                citations: [
+                  {
+                    title: "Understanding Modern Data Analysis Techniques",
+                    url: "https://www.datasciencecentral.com/analysis-techniques",
+                    domain: "datasciencecentral.com",
+                    snippet: "Data analysis involves examining, cleaning, and modeling data to discover useful information and support decision-making. Modern techniques include statistical analysis, machine learning, and visualization methods.",
+                    relevanceScore: 0.92
+                  },
+                  {
+                    title: "Best Practices for Business Intelligence Reporting",
+                    url: "https://www.tableau.com/learn/articles/business-intelligence-reporting",
+                    domain: "tableau.com",
+                    snippet: "Effective BI reporting requires clear objectives, appropriate visualizations, and regular updates. Key elements include KPI tracking, trend analysis, and actionable insights that drive business decisions.",
+                    relevanceScore: 0.87
+                  },
+                  {
+                    title: "Python for Data Analysis: Complete Guide",
+                    url: "https://pandas.pydata.org/docs/user_guide/index.html",
+                    domain: "pandas.pydata.org",
+                    snippet: "Pandas provides powerful data structures and analysis tools for Python. It excels at data manipulation, cleaning, and analysis tasks, making it essential for data science workflows.",
+                    relevanceScore: 0.84
+                  },
+                  {
+                    title: "SQL Query Optimization Strategies",
+                    url: "https://stackoverflow.com/questions/tagged/sql-optimization",
+                    domain: "stackoverflow.com",
+                    snippet: "Database query optimization involves indexing, query restructuring, and performance monitoring. Proper optimization can significantly improve query execution times and system performance.",
+                    relevanceScore: 0.78
+                  }
+                ],
                 logs: trustedSession ? [
                   { time: new Date().toLocaleTimeString(), message: 'Auto-approved: Trust mode enabled' },
-                  { time: new Date().toLocaleTimeString(), message: 'Starting search process...' }
+                  { time: new Date().toLocaleTimeString(), message: 'Starting search process...' },
+                  { time: new Date().toLocaleTimeString(), message: 'Found 4 relevant sources' },
+                  { time: new Date().toLocaleTimeString(), message: 'Search completed successfully' }
                 ] : []
-              }
-            },
-            { 
-              id: `action-${Date.now()}-2`,
-              type: 'code', 
-              status: 'pending', 
-              description: 'Preparing analysis', 
-              icon: Terminal,
-              details: {
-                language: 'Python',
-                estimatedTime: '5-10 seconds',
-                logs: []
               }
             }
           ]
@@ -512,21 +601,52 @@ print("12 visualizations generated successfully")`,
                                 )}
                                 
                                 {action.type === 'search' && (
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-600">Results:</span>
-                                      <span>{action.details.resultsCount} found</span>
+                                      <span className="font-medium text-gray-600">Query:</span>
+                                      <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{action.details.searchQuery}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-600">Sources:</span>
-                                      <div className="flex gap-1">
-                                        {action.details.sources?.map((source, i) => (
-                                          <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                                            {source}
-                                          </span>
-                                        ))}
+                                    
+                                    {/* Citations */}
+                                    {action.details.citations && action.details.citations.length > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="font-medium text-gray-600">Search Results & Citations:</div>
+                                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                                          {action.details.citations.map((citation, i) => (
+                                            <div key={i} className="border border-gray-200 rounded-lg p-3 bg-white">
+                                              <div className="flex items-start justify-between gap-2 mb-2">
+                                                <a 
+                                                  href={citation.url} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  className="text-blue-600 hover:text-blue-800 font-medium text-sm leading-tight hover:underline"
+                                                >
+                                                  {citation.title}
+                                                </a>
+                                                <span className="text-xs text-gray-500 bg-green-100 px-2 py-1 rounded">
+                                                  {Math.round(citation.relevanceScore * 100)}% match
+                                                </span>
+                                              </div>
+                                              <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                                <Globe className="w-3 h-3" />
+                                                {citation.domain}
+                                              </div>
+                                              <p className="text-sm text-gray-700 leading-relaxed">
+                                                {citation.snippet}
+                                              </p>
+                                              <a 
+                                                href={citation.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 hover:text-blue-800"
+                                              >
+                                                Read more →
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
                                 )}
                                 
@@ -565,6 +685,72 @@ print("12 visualizations generated successfully")`,
                                       <div className="flex items-center gap-2">
                                         <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
                                         <span className="text-blue-600">{action.details.currentStep}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {action.type === 'confluence' && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-gray-600">Query:</span>
+                                      <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{action.details.searchQuery}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                      <span><strong>Space:</strong> {action.details.space}</span>
+                                      <span><strong>Results:</strong> {action.details.resultsFound}</span>
+                                      <span><strong>Time:</strong> {action.details.executionTime}</span>
+                                    </div>
+                                    
+                                    {/* Confluence Results */}
+                                    {action.details.confluenceResults && action.details.confluenceResults.length > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="font-medium text-gray-600">Confluence Documentation Found:</div>
+                                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                                          {action.details.confluenceResults.map((result, i) => (
+                                            <div key={i} className="border border-gray-200 rounded-lg p-3 bg-white">
+                                              <div className="flex items-start justify-between gap-2 mb-2">
+                                                <a 
+                                                  href={result.url} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  className="text-blue-600 hover:text-blue-800 font-medium text-sm leading-tight hover:underline"
+                                                >
+                                                  {result.title}
+                                                </a>
+                                                <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
+                                                  {result.pageType}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
+                                                <span className="flex items-center gap-1">
+                                                  <FileText className="w-3 h-3" />
+                                                  {result.space}
+                                                </span>
+                                                <span>by {result.author}</span>
+                                                <span>updated {result.lastModified}</span>
+                                              </div>
+                                              <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                                                {result.snippet}
+                                              </p>
+                                              <div className="flex items-center gap-1 mb-2">
+                                                {result.labels.map((label, idx) => (
+                                                  <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                                    {label}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                              <a 
+                                                href={result.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                                              >
+                                                Open in Confluence →
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
