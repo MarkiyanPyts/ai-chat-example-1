@@ -12,7 +12,12 @@ const AgenticChatInterface = () => {
   
   const [messages, setMessages] = useState([
     { id: 1, type: 'user', content: 'Create a Confluence page documenting our Q4 sales analysis results' },
-    { id: 2, type: 'assistant', content: "I'll help you create a Confluence page with the Q4 sales analysis. Let me gather the data and prepare the documentation.", 
+    { id: 2, type: 'assistant', content: "I'll help you create a Confluence page with the Q4 sales analysis. Let me gather the data and prepare the documentation.",
+      agentInfo: {
+        name: "AllAI Orchestrator Agent",
+        specialization: "Task Coordination & Multi-Agent Management",
+        permissions: ["Tool Selection", "Agent Handoffs", "Workflow Orchestration", "Resource Management"]
+      }, 
       actions: [
         { 
           id: 'action-1',
@@ -122,6 +127,11 @@ print("12 visualizations generated successfully")`,
       id: 4, 
       type: 'assistant', 
       content: "I'll search through your Confluence documentation to find information about API authentication processes.",
+      agentInfo: {
+        name: "AllAI Orchestrator Agent",
+        specialization: "Task Coordination & Multi-Agent Management",
+        permissions: ["Tool Selection", "Agent Handoffs", "Workflow Orchestration", "Resource Management"]
+      },
       actions: [
         { 
           id: 'action-confluence-1',
@@ -189,8 +199,13 @@ print("12 visualizations generated successfully")`,
       id: 6, 
       type: 'assistant', 
       content: "I need to hand this off to our Salesforce specialist who has the expertise and permissions to modify lead scoring rules. Let me connect you with the Salesforce Core agent.",
+      agentInfo: {
+        name: "AllAI Orchestrator Agent",
+        specialization: "Task Coordination & Multi-Agent Management",
+        permissions: ["Tool Selection", "Agent Handoffs", "Workflow Orchestration", "Resource Management"]
+      },
       agentHandoff: {
-        fromAgent: "General AI Assistant",
+        fromAgent: "AllAI Orchestrator Agent",
         toAgent: "Salesforce Core Agent",
         reason: "Salesforce configuration requires specialized knowledge and elevated permissions",
         timestamp: "10:28:45"
@@ -245,6 +260,20 @@ print("12 visualizations generated successfully")`,
             dependsOn: 'Salesforce Login Tool',
             dependencyStatus: 'session_expired',
             waitingFor: 'User to refresh Salesforce session',
+            blockedReason: 'Cannot execute APEX code without active Salesforce session',
+            pendingApprovalDetails: {
+              potentialRisks: [
+                'Will execute APEX code in Production Salesforce org',
+                'Queries lead data from the last 30 days (up to 1000 records)',
+                'Accesses custom LeadScoringRule__c objects',
+                'May impact org performance during execution'
+              ],
+              codePreview: `// Query current lead scoring rules
+List<Lead> leads = [SELECT Id, LeadScore, Rating, Source 
+                    FROM Lead WHERE CreatedDate = LAST_N_DAYS:30 
+                    LIMIT 1000];
+// Analyze scoring distribution and active rules...`
+            },
             logs: [
               { time: '10:28:50', message: 'Checking dependencies...' },
               { time: '10:28:50', message: 'Dependency: Salesforce Login Tool - session expired' },
@@ -261,6 +290,7 @@ print("12 visualizations generated successfully")`,
   const [trustedSession, setTrustedSession] = useState(false);
   const [showSalesforceModal, setShowSalesforceModal] = useState(false);
   const [salesforceSessionActive, setSalesforceSessionActive] = useState(false);
+  const [showAgentTooltip, setShowAgentTooltip] = useState(null);
   
   const [inputValue, setInputValue] = useState('');
   const [activeThread, setActiveThread] = useState(1);
@@ -301,18 +331,19 @@ print("12 visualizations generated successfully")`,
             if (action.id === 'action-sf-1') {
               return {
                 ...action,
-                status: 'running',
-                startTime: new Date().toLocaleTimeString(),
+                status: 'pending_approval',
+                approved: false,
                 details: {
                   ...action.details,
-                  waitingFor: undefined,
                   dependsOn: undefined,
                   dependencyStatus: undefined,
+                  waitingFor: undefined,
+                  blockedReason: undefined,
+                  potentialRisks: action.details.pendingApprovalDetails.potentialRisks,
+                  codePreview: action.details.pendingApprovalDetails.codePreview,
                   logs: [
                     { time: new Date().toLocaleTimeString(), message: 'Dependency satisfied: Salesforce Login Tool - session active' },
-                    { time: new Date().toLocaleTimeString(), message: 'Salesforce session active - proceeding with analysis' },
-                    { time: new Date().toLocaleTimeString(), message: 'Connecting to Salesforce Production org...' },
-                    { time: new Date().toLocaleTimeString(), message: 'Executing APEX code...' }
+                    { time: new Date().toLocaleTimeString(), message: 'Ready for user approval to execute APEX code' }
                   ]
                 }
               };
@@ -324,72 +355,7 @@ print("12 visualizations generated successfully")`,
       return msg;
     }));
 
-    // Simulate APEX completion after a delay
-    setTimeout(() => {
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === 7 && msg.actions) {
-          return {
-            ...msg,
-            actions: msg.actions.map(action => {
-              if (action.id === 'action-sf-1') {
-                return {
-                  ...action,
-                  status: 'completed',
-                  endTime: new Date().toLocaleTimeString(),
-                  details: {
-                    ...action.details,
-                    executionTime: '2.8s',
-                    apexCode: `// Query current lead scoring rules
-List<Lead> leads = [SELECT Id, LeadScore, Rating, Source, Industry, Company 
-                    FROM Lead 
-                    WHERE CreatedDate = LAST_N_DAYS:30 
-                    LIMIT 1000];
-
-// Analyze scoring distribution
-Map<String, Integer> scoreDistribution = new Map<String, Integer>();
-for(Lead l : leads) {
-    String scoreRange = getScoreRange(l.LeadScore);
-    Integer count = scoreDistribution.get(scoreRange);
-    scoreDistribution.put(scoreRange, count == null ? 1 : count + 1);
-}
-
-System.debug('Current lead score distribution: ' + scoreDistribution);
-
-// Get active scoring rules
-List<LeadScoringRule__c> activeRules = [SELECT Id, Name, Criteria__c, Points__c, IsActive__c 
-                                       FROM LeadScoringRule__c 
-                                       WHERE IsActive__c = true];
-
-System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
-                    results: {
-                      leadsAnalyzed: 847,
-                      activeRules: 12,
-                      averageScore: 42.3,
-                      scoreDistribution: {
-                        "Hot (80-100)": 67,
-                        "Warm (60-79)": 156,
-                        "Cold (40-59)": 324,
-                        "Unqualified (0-39)": 300
-                      }
-                    },
-                    logs: [
-                      ...action.details.logs,
-                      { time: new Date().toLocaleTimeString(), message: 'print: Querying lead scoring rules...' },
-                      { time: new Date().toLocaleTimeString(), message: 'print: Found 847 leads from last 30 days' },
-                      { time: new Date().toLocaleTimeString(), message: 'print: Current lead score distribution calculated' },
-                      { time: new Date().toLocaleTimeString(), message: 'print: Found 12 active scoring rules' },
-                      { time: new Date().toLocaleTimeString(), message: 'Analysis complete - ready for rule modifications' }
-                    ]
-                  }
-                };
-              }
-              return action;
-            })
-          };
-        }
-        return msg;
-      }));
-    }, 3000);
+    // APEX tool now stays in pending_approval state until user explicitly approves it
   };
   
   useEffect(() => {
@@ -533,6 +499,7 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
   };
   
   const runAction = (messageId, actionId) => {
+    // First set to running
     setMessages(prev => prev.map(msg => {
       if (msg.id === messageId) {
         return {
@@ -541,16 +508,98 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
             if (action.id === actionId) {
               return {
                 ...action,
-                status: 'completed',
-                endTime: new Date().toLocaleTimeString(),
+                status: 'running',
+                startTime: new Date().toLocaleTimeString(),
                 details: {
                   ...action.details,
-                  progress: 100,
                   logs: [
                     ...(action.details.logs || []),
-                    { time: new Date().toLocaleTimeString(), message: 'Action completed successfully' }
-                  ],
-                  ...(action.type === 'search' ? { resultsCount: 42 } : {}),
+                    { time: new Date().toLocaleTimeString(), message: 'Starting action execution...' }
+                  ]
+                }
+              };
+            }
+            return action;
+          })
+        };
+      }
+      return msg;
+    }));
+
+    // Then complete after delay
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          return {
+            ...msg,
+            actions: msg.actions.map(action => {
+              if (action.id === actionId) {
+                // Special handling for APEX tool
+                if (action.id === 'action-sf-1') {
+                  return {
+                    ...action,
+                    status: 'completed',
+                    endTime: new Date().toLocaleTimeString(),
+                    details: {
+                      ...action.details,
+                      executionTime: '2.8s',
+                      apexCode: `// Query current lead scoring rules
+List<Lead> leads = [SELECT Id, LeadScore, Rating, Source, Industry, Company 
+                    FROM Lead 
+                    WHERE CreatedDate = LAST_N_DAYS:30 
+                    LIMIT 1000];
+
+// Analyze scoring distribution
+Map<String, Integer> scoreDistribution = new Map<String, Integer>();
+for(Lead l : leads) {
+    String scoreRange = getScoreRange(l.LeadScore);
+    Integer count = scoreDistribution.get(scoreRange);
+    scoreDistribution.put(scoreRange, count == null ? 1 : count + 1);
+}
+
+System.debug('Current lead score distribution: ' + scoreDistribution);
+
+// Get active scoring rules
+List<LeadScoringRule__c> activeRules = [SELECT Id, Name, Criteria__c, Points__c, IsActive__c 
+                                       FROM LeadScoringRule__c 
+                                       WHERE IsActive__c = true];
+
+System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
+                      results: {
+                        leadsAnalyzed: 847,
+                        activeRules: 12,
+                        averageScore: 42.3,
+                        scoreDistribution: {
+                          "Hot (80-100)": 67,
+                          "Warm (60-79)": 156,
+                          "Cold (40-59)": 324,
+                          "Unqualified (0-39)": 300
+                        }
+                      },
+                      logs: [
+                        ...(action.details.logs || []),
+                        { time: new Date().toLocaleTimeString(), message: 'print: Querying lead scoring rules...' },
+                        { time: new Date().toLocaleTimeString(), message: 'print: Found 847 leads from last 30 days' },
+                        { time: new Date().toLocaleTimeString(), message: 'print: Current lead score distribution calculated' },
+                        { time: new Date().toLocaleTimeString(), message: 'print: Found 12 active scoring rules' },
+                        { time: new Date().toLocaleTimeString(), message: 'Analysis complete - ready for rule modifications' }
+                      ]
+                    }
+                  };
+                }
+                // Default completion for other actions
+                return {
+                  ...action,
+                  status: 'completed',
+                  endTime: new Date().toLocaleTimeString(),
+                  details: {
+                    ...action.details,
+                    progress: 100,
+                    logs: [
+                      ...(action.details.logs || []),
+                      { time: new Date().toLocaleTimeString(), message: 'Action completed successfully' }
+                    ],
+                    ...(action.type === 'search' ? { resultsCount: 42 } : {}),
                   ...(action.type === 'database' ? { recordsFound: 1337, executionTime: '1.2s' } : {})
                 }
               };
@@ -561,6 +610,7 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
       }
       return msg;
     }));
+    }, 3000); // 3 second delay for completion
   };
   
   const toggleActionExpanded = (actionId) => {
@@ -602,7 +652,15 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div 
+      className="flex h-screen bg-gray-50"
+      onClick={(e) => {
+        // Close tooltip if clicking outside of it
+        if (!e.target.closest('.agent-tooltip') && !e.target.closest('.agent-avatar')) {
+          setShowAgentTooltip(null);
+        }
+      }}
+    >
       {/* Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
@@ -676,16 +734,59 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
           {messages.map(message => (
             <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex gap-3 max-w-3xl ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' ? 'bg-gray-600' : 
-                  message.agentInfo ? 'bg-purple-600' : 'bg-blue-600'
-                }`}>
-                  {message.type === 'user' ? (
-                    <User className="w-5 h-5 text-white" />
-                  ) : message.agentInfo ? (
-                    <Zap className="w-5 h-5 text-white" />
-                  ) : (
-                    <Bot className="w-5 h-5 text-white" />
+                <div className="relative">
+                  <div 
+                    className={`agent-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.type === 'user' ? 'bg-gray-600' : 
+                      message.agentInfo?.name === 'Salesforce Core Agent' ? 'bg-purple-600 cursor-pointer hover:bg-purple-700' :
+                      message.agentInfo ? 'bg-blue-600 cursor-pointer hover:bg-blue-700' : 'bg-blue-600'
+                    } transition-colors`}
+                    onClick={() => message.agentInfo && setShowAgentTooltip(showAgentTooltip === message.id ? null : message.id)}
+                  >
+                    {message.type === 'user' ? (
+                      <User className="w-5 h-5 text-white" />
+                    ) : message.agentInfo?.name === 'Salesforce Core Agent' ? (
+                      <Zap className="w-5 h-5 text-white" />
+                    ) : message.agentInfo ? (
+                      <Bot className="w-5 h-5 text-white" />
+                    ) : (
+                      <Bot className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  
+                  {/* Agent Info Tooltip */}
+                  {message.agentInfo && showAgentTooltip === message.id && (
+                    <div className="agent-tooltip absolute left-10 top-0 z-50 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        {message.agentInfo.name === 'Salesforce Core Agent' ? (
+                          <Zap className="w-4 h-4 text-purple-600" />
+                        ) : (
+                          <Bot className="w-4 h-4 text-blue-600" />
+                        )}
+                        <div className="text-sm font-medium text-gray-900">{message.agentInfo.name}</div>
+                      </div>
+                      <div className="text-xs text-gray-700 space-y-2">
+                        <div><strong>Specialization:</strong> {message.agentInfo.specialization}</div>
+                        <div>
+                          <strong>Permissions:</strong>
+                          <div className="flex gap-1 flex-wrap mt-1">
+                            {message.agentInfo.permissions.map((perm, i) => (
+                              <span 
+                                key={i} 
+                                className={`px-2 py-0.5 rounded text-xs ${
+                                  message.agentInfo.name === 'Salesforce Core Agent' 
+                                    ? 'bg-purple-100 text-purple-700' 
+                                    : 'bg-blue-100 text-blue-700'
+                                }`}
+                              >
+                                {perm}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="absolute -left-2 top-3 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-white"></div>
+                    </div>
                   )}
                 </div>
                 
@@ -712,28 +813,6 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
                     </div>
                   )}
                   
-                  {/* Agent Info */}
-                  {message.agentInfo && (
-                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Zap className="w-5 h-5 text-purple-600" />
-                        <div className="text-sm font-medium text-purple-900">{message.agentInfo.name}</div>
-                      </div>
-                      <div className="text-xs text-purple-700 space-y-1">
-                        <div><strong>Specialization:</strong> {message.agentInfo.specialization}</div>
-                        <div className="flex items-center gap-1">
-                          <strong>Permissions:</strong>
-                          <div className="flex gap-1 flex-wrap">
-                            {message.agentInfo.permissions.map((perm, i) => (
-                              <span key={i} className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">
-                                {perm}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   
                   {/* Agent Actions */}
                   {message.actions && (
@@ -1097,6 +1176,11 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
                                               <span className="text-xs text-orange-600">
                                                 ({action.details.dependencyStatus?.replace('_', ' ')})
                                               </span>
+                                            </div>
+                                          )}
+                                          {action.details.blockedReason && (
+                                            <div className="text-xs text-orange-600 italic">
+                                              {action.details.blockedReason}
                                             </div>
                                           )}
                                         </div>
