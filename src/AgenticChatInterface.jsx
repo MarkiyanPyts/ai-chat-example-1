@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Plus, Search, Database, Code, Loader2, CheckCircle, AlertCircle, Bot, User, Sparkles, FileText, Globe, Terminal, ChevronDown, ChevronUp, Clock, Activity, Shield, ShieldCheck, X, Check, AlertTriangle } from 'lucide-react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const AgenticChatInterface = () => {
   const [threads, setThreads] = useState([
@@ -16,6 +18,7 @@ const AgenticChatInterface = () => {
           id: 'action-1',
           type: 'database', 
           status: 'completed', 
+          toolName: 'Query Database Tool',
           description: 'Retrieving Q4 sales data', 
           icon: Database,
           startTime: '10:23:45',
@@ -37,6 +40,7 @@ const AgenticChatInterface = () => {
           id: 'action-2',
           type: 'code', 
           status: 'completed', 
+          toolName: 'Code Interpreter Tool',
           description: 'Analyzing sales trends', 
           icon: Code,
           startTime: '10:23:48',
@@ -46,9 +50,32 @@ const AgenticChatInterface = () => {
             language: 'Python',
             framework: 'Pandas + Matplotlib',
             resultsCount: 12,
+            codeExample: `import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load sales data
+print("Loading Q4 sales data...")
+df = pd.read_sql(query, connection)
+print(f"Loaded {len(df)} records")
+
+# Calculate trends
+print("Calculating growth metrics...")
+growth_rate = df.groupby('month')['revenue'].sum().pct_change()
+print(f"Growth calculated: {growth_rate.mean():.2%}")
+
+# Generate visualizations
+print("Creating visualizations...")
+plt.figure(figsize=(12, 6))
+plt.plot(df['date'], df['revenue'])
+print("12 visualizations generated successfully")`,
             logs: [
               { time: '10:23:48', message: 'Loading data into DataFrame...' },
+              { time: '10:23:48', message: 'print: Loading Q4 sales data...' },
+              { time: '10:23:49', message: 'print: Loaded 15420 records' },
               { time: '10:23:49', message: 'Calculating growth metrics...' },
+              { time: '10:23:49', message: 'print: Growth calculated: 23.45%' },
+              { time: '10:23:50', message: 'print: Creating visualizations...' },
+              { time: '10:23:50', message: 'print: 12 visualizations generated successfully' },
               { time: '10:23:50', message: 'Generated 12 visualizations' }
             ]
           }
@@ -437,7 +464,12 @@ const AgenticChatInterface = () => {
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${getActionStatusColor(action.status)} transition-all cursor-pointer hover:shadow-sm`}
                           >
                             {getActionIcon(action)}
-                            <span className="text-sm text-gray-700 flex-1">{action.description}</span>
+                            <div className="flex-1">
+                              {action.toolName && (
+                                <div className="text-xs font-medium text-blue-600 mb-1">{action.toolName}</div>
+                              )}
+                              <span className="text-sm text-gray-700">{action.description}</span>
+                            </div>
                             <div className="flex items-center gap-2">
                               {action.status === 'running' && action.details?.progress && (
                                 <div className="flex items-center gap-1">
@@ -508,6 +540,25 @@ const AgenticChatInterface = () => {
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium text-gray-600">Framework:</span>
                                         <span>{action.details.framework}</span>
+                                      </div>
+                                    )}
+                                    {action.details.codeExample && (
+                                      <div className="mt-2">
+                                        <div className="font-medium text-gray-600 mb-1">Code:</div>
+                                        <div className="rounded overflow-hidden">
+                                          <SyntaxHighlighter 
+                                            language="python" 
+                                            style={tomorrow}
+                                            className="text-xs"
+                                            customStyle={{
+                                              margin: 0,
+                                              borderRadius: '0.375rem',
+                                              fontSize: '0.75rem'
+                                            }}
+                                          >
+                                            {action.details.codeExample}
+                                          </SyntaxHighlighter>
+                                        </div>
                                       </div>
                                     )}
                                     {action.status === 'running' && action.details.currentStep && (
