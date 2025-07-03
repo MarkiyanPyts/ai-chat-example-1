@@ -294,11 +294,7 @@ List<Lead> leads = [SELECT Id, LeadScore, Rating, Source
   
   const [inputValue, setInputValue] = useState('');
   const [activeThread, setActiveThread] = useState(1);
-  const messagesEndRef = useRef(null);
   
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   const handleSalesforceRefresh = () => {
     setSalesforceSessionActive(true);
@@ -358,9 +354,6 @@ List<Lead> leads = [SELECT Id, LeadScore, Rating, Source
     // APEX tool now stays in pending_approval state until user explicitly approves it
   };
   
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
   
   const handleSendMessage = () => {
     if (inputValue.trim()) {
@@ -1258,7 +1251,6 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
         </div>
         
         {/* Input Area */}
