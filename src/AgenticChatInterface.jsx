@@ -827,16 +827,6 @@ System.debug('Found ' + activeRules.size() + ' active scoring rules');`,
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-gray-900">Action Approval Required</p>
                                   <p className="text-xs text-gray-600 mt-1">The AI wants to: <strong>{action.description}</strong></p>
-                                  {action.details?.potentialRisks && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-gray-700">Potential risks:</p>
-                                      <ul className="list-disc list-inside text-xs text-gray-600 mt-1">
-                                        {action.details.potentialRisks.map((risk, i) => (
-                                          <li key={i}>{risk}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
                                   {action.details?.codePreview && (
                                     <div className="mt-2">
                                       <p className="text-xs font-medium text-gray-700 mb-1">Code preview:</p>
